@@ -1,0 +1,8 @@
+# 忽略虚拟环境
+venv/
+# 忽略向量数据库（每个人本地生成的不一样，不用传）
+chroma_db/
+# 忽略 Python 运行时产生的缓存
+__pycache__/
+# 忽略包含 API Key 的配置文件
+core/config.py
