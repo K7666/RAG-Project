@@ -6,3 +6,5 @@ chroma_db/
 __pycache__/
 # 忽略包含 API Key 的配置文件
 core/config.py
+#忽略本地的聊天记录数据库
+memory.db
