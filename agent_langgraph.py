@@ -152,14 +152,14 @@ if __name__ == "__main__":
     config = {"configurable": {"thread_id": "user_1"}}
     # 第一轮对话
     print("\n--- 第一轮 ---")
-    user_input_1 = "那上海呢"
+    user_input_1 = "北京天气如何，根据天气给我推荐一首歌"
     print(f"用户：{user_input_1}")
     result = app.invoke({"messages": [("user", user_input_1)]}, config)  #当你第一轮调用 app.invoke({"messages": [("user", user_input_1)]}, config) 时：LangGraph 去 MemorySaver/SqliteSaver 里找 thread_id="user_1" 的账本发现没找到（因为是第一轮）。于是，它就把你传入的这个字典 {"messages": [...]} 当作初始的 State（初始化账本）。
     print(f"AI：{result['messages'][-1].content}")
     config2 = {"configurable": {"thread_id": "user_2"}}
     # 第二轮对话（注意：这次只说了“那上海呢”，没有提“天气”二字）
     print("\n--- 第二轮 ---")
-    user_input_2 = "那北京呢？"
+    user_input_2 = "RAG是什么？"
     print(f"用户：{user_input_2}")
     result = app.invoke({"messages": [("user", user_input_2)]}, config2)  #当你第二轮调用 app.invoke({"messages": [("user", "那上海呢？")]}, config) 时：发现有历史账本（里面记着第一轮的“北京天气”）。LangGraph 会把你的新字典，合并（更新）到旧账本里。
     print(f"AI：{result['messages'][-1].content}")

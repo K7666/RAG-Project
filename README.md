@@ -18,3 +18,8 @@
 1. 安装依赖：`pip install -r requirements.txt`
 2. 配置 API Key：在 `core/config.py` 填入你的 DeepSeek API Key
 3. 运行：`python main.py`
+## MCP 工具服务
+
+本项目实现了 MCP (Model Context Protocol) 标准化工具服务：
+- `mcp_server.py`：独立的 MCP 工具服务器（天气、音乐推荐）
+- `agent_mcp.py`：通过 MCP 协议动态加载工具的 LangGraph Agent
