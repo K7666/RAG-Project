@@ -60,7 +60,9 @@ async def main():              #这部分需要放在 async 函数里，因为 M
                 "2. 如果用户问天气，必须调用 get_weather 工具。\n"
                 "3. 如果用户问汇率，必须调用 get_exchange_rate 工具。\n"
                 "4. 如果用户让你推荐歌曲，必须调用 get_music 工具。\n"
-                "5. 如果工具调用失败，请诚实地告诉用户，并建议换个方式尝试。\n"
+                "5. 如果用户问的是关于‘RAG’、‘大模型’、‘智能体’等知识概念，请优先调用 search_knowledge_base 工具，不要凭记忆瞎编。\n"
+                "6. 如果工具调用失败，请诚实地告诉用户，并建议换个方式尝试。\n"
+                "7. 如果第一次检索的结果不完整，你可以换一个关键词，多次调用 search_knowledge_base 工具，直到收集齐足够的信息。\n"
                 "【回答格式】\n"
                 "请先给出结论，再给出详细解释。语气要亲切。"
             )
@@ -102,7 +104,7 @@ async def main():              #这部分需要放在 async 函数里，因为 M
     # 5. 运行测试
     config = {"configurable": {"thread_id": "mcp_test"}}
     print("\n--- 第一轮 ---")
-    result = await app.ainvoke({"messages": [("user", "北京天气如何？")]}, config)
+    result = await app.ainvoke({"messages": [("user", "北京天气如何？什么是rag？")]}, config)
     print(f"AI：{result['messages'][-1].content}")
 
 

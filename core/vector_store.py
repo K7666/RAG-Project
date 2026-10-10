@@ -38,7 +38,7 @@ class VectorStoreManager:
             return self.vectorstore
 
         print("3. 开始向量化并存入向量数据库...")
-        self.vectorstore = Chroma.from_documents(        #当一个方法在定义时，被加上了特殊的“标记”（@classmethod）。则调用这个方法不用先实例化在调用实例方法，直接在这个方法前面加上类名.即可；这里就是这样。普通实例方法：需要先有“对象”，用 对象.方法() 调用。类方法：不需要先有对象，直接用 类名.方法() 调用（比如 Chroma.from_documents）。
+        self.vectorstore = Chroma.from_documents(        #当一个方法在定义时，被加上了特殊的“标记”（@classmethod）。则调用这个方法不用先实例化在调用实例方法，直接在这个方法前面加上类名.即可；这里就是这样。普通实例方法：需要先有“对象”，用 对象.方法() 调用。类方法：不需要先有对象，直接用 类名.方法() 调用（比如 Chroma.from_documents）。类方法在内部，会帮你造一个 Chroma 对象。所以它依然创建了 Chroma 对象，只是过程被封装在了 from_documents 内部。
             documents=chunks,                     #切分好的文本块
             embedding=self.embeddings,            #翻译机
             persist_directory=settings.CHROMA_PATH#向量放在哪

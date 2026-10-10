@@ -94,6 +94,19 @@ from langchain_core.messages import SystemMessage
 def agent_node(state: MessagesState):    #“定义一个叫 agent_node 的函数，它接收一个名叫 state 的参数（这是一个 MessagesState 类型的账本）。”MessagesState 是什么？本质是一个字典，大概是这样的结构：{"messages": [消息1, 消息2, 消息3...]}。 它是 LangGraph 官方提供的一个专门的账本类。这个账本内部自带一个 messages 字段。
     # 从账本里取出历史消息
     messages = state["messages"]   #从账本里，把名为 messages 的那一页抽出来。把抽出来的消息列表赋值给变量 messages。此时，messages 里可能包含用户的问题、上一轮的历史等等。
+    # 🎯 记忆压缩：如果消息超过 20 条，把前 10 条压缩成摘要
+    if len(messages) > 20:
+        old_messages = messages[:-10]
+        recent_messages = messages[-10:]
+
+        # 调用大模型做摘要
+        summary_prompt = f"请把以下对话历史压缩成一段不超过200字的摘要，保留关键事实和用户偏好：\n{old_messages}"
+        summary = llm.invoke(summary_prompt).content
+
+        # 用摘要替换早期消息
+        messages = [
+            SystemMessage(content=f"【历史对话摘要】{summary}")
+        ] + recent_messages
     sys_msg = SystemMessage(
         content="你是一个生活助手，你可以查询天气、汇率和推荐音乐,当然也可以搜索资料。请根据用户的需求，自主决定调用哪些工具。在回答时，请给出有温度的建议。当用户让你整理某个主题的资料时，请严格按以下步骤执行：\n"
                 "1. 首先，调用 mock_web_search 工具，搜索该主题。\n"
@@ -156,12 +169,12 @@ if __name__ == "__main__":
     print(f"用户：{user_input_1}")
     result = app.invoke({"messages": [("user", user_input_1)]}, config)  #当你第一轮调用 app.invoke({"messages": [("user", user_input_1)]}, config) 时：LangGraph 去 MemorySaver/SqliteSaver 里找 thread_id="user_1" 的账本发现没找到（因为是第一轮）。于是，它就把你传入的这个字典 {"messages": [...]} 当作初始的 State（初始化账本）。
     print(f"AI：{result['messages'][-1].content}")
-    config2 = {"configurable": {"thread_id": "user_2"}}
+    config = {"configurable": {"thread_id": "user_1"}}
     # 第二轮对话（注意：这次只说了“那上海呢”，没有提“天气”二字）
     print("\n--- 第二轮 ---")
-    user_input_2 = "RAG是什么？"
+    user_input_2 = "上一轮我问你什么问题？"
     print(f"用户：{user_input_2}")
-    result = app.invoke({"messages": [("user", user_input_2)]}, config2)  #当你第二轮调用 app.invoke({"messages": [("user", "那上海呢？")]}, config) 时：发现有历史账本（里面记着第一轮的“北京天气”）。LangGraph 会把你的新字典，合并（更新）到旧账本里。
+    result = app.invoke({"messages": [("user", user_input_2)]}, config)  #当你第二轮调用 app.invoke({"messages": [("user", "那上海呢？")]}, config) 时：发现有历史账本（里面记着第一轮的“北京天气”）。LangGraph 会把你的新字典，合并（更新）到旧账本里。
     print(f"AI：{result['messages'][-1].content}")
 
 
