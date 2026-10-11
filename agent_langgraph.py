@@ -93,12 +93,12 @@ from langchain_core.messages import SystemMessage
 # 节点 A：大模型节点
 def agent_node(state: MessagesState):    #“定义一个叫 agent_node 的函数，它接收一个名叫 state 的参数（这是一个 MessagesState 类型的账本）。”MessagesState 是什么？本质是一个字典，大概是这样的结构：{"messages": [消息1, 消息2, 消息3...]}。 它是 LangGraph 官方提供的一个专门的账本类。这个账本内部自带一个 messages 字段。
     # 从账本里取出历史消息
-    messages = state["messages"]   #从账本里，把名为 messages 的那一页抽出来。把抽出来的消息列表赋值给变量 messages。此时，messages 里可能包含用户的问题、上一轮的历史等等。
-    # 🎯 记忆压缩：如果消息超过 20 条，把前 10 条压缩成摘要
+    # 1. 过滤掉所有旧的 SystemMessage（防止重复）
+    messages = [m for m in state["messages"] if not isinstance(m, SystemMessage)]
+    # 2. 记忆压缩：如果消息超过 20 条，把前 10 条压缩成摘要
     if len(messages) > 20:
         old_messages = messages[:-10]
         recent_messages = messages[-10:]
-
         # 调用大模型做摘要
         summary_prompt = f"请把以下对话历史压缩成一段不超过200字的摘要，保留关键事实和用户偏好：\n{old_messages}"
         summary = llm.invoke(summary_prompt).content
@@ -155,7 +155,7 @@ workflow.add_conditional_edges(    #add_conditional_edges：添加“条件边�
     tools_condition,               # 自动判断：有大模型发来的 tool_calls 吗？
 )                                  #如果大模型要调工具，就去 "tools" 节点；如果大模型回答完了（无 tool_calls），就自动走向 END（终点）。因为这里传了 tools_condition，LangGraph 会自动帮我们连好 "tools" 和 END 这两条线。
 # 编译这张图
-app = workflow.compile(checkpointer=memory)           #compile()：把图纸变成可以运行的应用；checkpointer 是编译时传的参数。你告诉图：“以后每次流转，都把这个账本的快照存到 memory 里，别用完就扔。”
+app = workflow.compile(checkpointer=memory)           #compile()：把图纸变成可以运行的应用；checkpointer 是编译时传的参数。你告诉图：“以后每次流转，都把这个state(账本)的快照存到 memory 里，别用完就扔。”
 
 # ==========================================
 # 5. 运行测试
@@ -165,7 +165,7 @@ if __name__ == "__main__":
     config = {"configurable": {"thread_id": "user_1"}}
     # 第一轮对话
     print("\n--- 第一轮 ---")
-    user_input_1 = "北京天气如何，根据天气给我推荐一首歌"
+    user_input_1 = "1欧元为多少人民币"
     print(f"用户：{user_input_1}")
     result = app.invoke({"messages": [("user", user_input_1)]}, config)  #当你第一轮调用 app.invoke({"messages": [("user", user_input_1)]}, config) 时：LangGraph 去 MemorySaver/SqliteSaver 里找 thread_id="user_1" 的账本发现没找到（因为是第一轮）。于是，它就把你传入的这个字典 {"messages": [...]} 当作初始的 State（初始化账本）。
     print(f"AI：{result['messages'][-1].content}")
@@ -183,3 +183,8 @@ if __name__ == "__main__":
 #你可以回答：
 #“我使用 LangGraph 的 SqliteSaver 作为检查点保存器，把对话状态持久化到 SQLite 数据库中。通过 thread_id 区分不同用户的会话。这样即使程序重启，也能恢复完整的对话历史。
 # 在生产环境，我会把 SQLite 替换为 Postgres 或 Redis，来支持高并发。”
+
+#关于LangGraph 自动把整个历史记录全部恢复的内部逻辑：
+#执行invoke函数后，invoke函数内部首先会去 memory 里查这个 thread_id 有没有历史快照，
+#如果有历史，就把历史 state 恢复出来，没有历史，就新建空账本，
+#然后把这次传入的新消息，追加到 state 里然后把state 传给图的第一个节点（agent_node），图每跑完一个节点，就存一次快照（Checkpoint）”，把新的 state 存回 memory。
